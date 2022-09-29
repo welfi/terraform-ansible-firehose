@@ -1,0 +1,24 @@
+---
+- apt:
+    name: "{{ item }}"
+    update_cache: yes
+  with_items:
+    - nginx
+    - python3
+    - certbot
+
+- name: Install software-properties-common
+  apt:
+    name: software-properties-common
+    state: present
+
+- name: apt update cache
+  apt:
+    update_cache: yes
+
+- name: Make sure Nginx is running
+  systemd:
+    state: started
+    name: nginx
+
+- meta: flush_handlers

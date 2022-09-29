@@ -1,0 +1,10 @@
+---
+- name: Deploy flaskAPI
+  handlers:
+    - import_tasks: handlers/main.yml
+  hosts: all
+
+  roles:
+    - role: flaskapi
+      become: yes
+      become_method: sudo

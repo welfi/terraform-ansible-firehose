@@ -1,0 +1,93 @@
+---
+- name: Update and upgrade apt packages
+  apt:
+    upgrade: yes
+    update_cache: yes
+- name: Install packages
+  apt:
+    update_cache: yes
+    pkg:
+      - python3
+      - python3-pip
+      - python3-dev
+      - build-essential
+      - libssl-dev
+      - libffi-dev
+      - python3-setuptools
+      - nginx
+      - python3-venv
+    state: present
+
+- name: Create virtual environement
+  shell: |
+    mkdir project
+    cd project
+    python3 -m venv venv
+- name: install modules in a virtualenv
+  pip:
+    name:
+      - wheel
+      - gunicorn
+      - flask
+      - flasgger
+      - boto3
+    virtualenv: /home/ubuntu/project/venv
+
+- name: copy swagger template
+  template:
+    src: swagger.yml
+    dest: /home/ubuntu/project/swagger.yml
+
+- name: copy aws configuration
+  template:
+    src: aws_config.py
+    dest: /home/ubuntu/project/aws_config.py
+
+- name: copy flask.py
+  template:
+    src: flaskapp.py
+    dest: /home/ubuntu/project/flaskapp.py
+
+- name: Create WSGI entry point
+  template:
+    src: wsgi.py
+    dest: /home/ubuntu/project/wsgi.py
+- name: Gunicorn serve
+  shell: |
+    . /home/ubuntu/project/venv/bin/activate
+    gunicorn --bind 0.0.0.0:5000 wsgi:app
+    deactivate
+- name: Change ownership and permession
+  shell: |
+    chown -R root:www-data /home/ubuntu/project
+    chmod -R 775 /home/ubuntu/project
+- name: copy flask service
+  template:
+    src: flask.service
+    dest: /etc/systemd/system/flask.service
+- name: Reload system daemon
+  shell: systemctl daemon-reload
+- name: Start and enable flask
+  shell: |
+    systemctl start flask
+    systemctl enable flask
+- name: copy flask nginx config
+  template:
+    src: flask.conf
+    dest: /etc/nginx/conf.d/flask.conf
+- name: restart nginx service
+  shell: systemctl restart nginx
+# - name: Install snap
+#   shell: |
+#     sudo snap install core; sudo snap refresh core
+#
+# - name: Install certbot
+#   shell: |
+#     sudo snap install --classic certbot
+# - name: Esnure certbot command can be run
+#   shell: |
+#     sudo ln -s /snap/bin/certbot /usr/bin/certbot
+#
+# - name: Add certbot to nginx
+#   shell: |
+#     sudo certbot --nginx
